@@ -1,73 +1,36 @@
 import json
 from pathlib import Path
 
-# Change this path after locating one JSON file
 DATASET_ROOT = Path("data/raw/RanDS_Behaviour_Activity_Dataset/dataset")
 
-# Find the first JSON recursively
 json_files = list(DATASET_ROOT.rglob("*.json"))
 
-print(f"Found {len(json_files)} JSON files.")
+print(f"Found {len(json_files)} JSON files.\n")
 
-if not json_files:
-    raise Exception("No JSON files found!")
+sample = None
+data = None
 
-sample = json_files[0]
+for file in json_files:
 
-print("\nOpening:")
+    with open(file, "r", encoding="utf-8") as f:
+
+        temp = json.load(f)
+
+    if len(temp["critical_api_calls"]) > 0:
+
+        sample = file
+        data = temp
+        break
+
+if sample is None:
+    raise Exception("No sample with non-empty critical_api_calls found!")
+
+print("Found first non-empty sample:\n")
 print(sample)
 
-with open(sample, "r", encoding="utf-8") as f:
-    data = json.load(f)
+print("\nTotal APIs:", len(data["critical_api_calls"]))
 
-print("\n========== KEYS ==========\n")
+print("\nFirst 20 entries:\n")
 
-for key in data.keys():
-    print(key)
-
-print("\n==========================\n")
-
-print("Data types:\n")
-
-for key, value in data.items():
-    print(f"{key:<30} {type(value).__name__}")
-
-print("\n==========================\n")
-
-if "critical_api_calls" in data:
-
-    apis = data["critical_api_calls"]
-
-    print(f"Total API calls: {len(apis)}")
-
-    print("\nFirst 20 APIs:\n")
-
-    for api in apis[:20]:
-        print(api)
-
-else:
-    print("critical_api_calls NOT FOUND!")
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Open ONE JSON
-# ↓
-# Print keys
-# ↓
-# Print types
-# ↓
-# Print critical_api_calls length
-# ↓
-# Print first few API calls
-# ↓
-# Exit
+for x in data["critical_api_calls"][:20]:
+    print(repr(x))

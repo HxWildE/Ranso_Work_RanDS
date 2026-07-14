@@ -1,5 +1,3 @@
-#checks if the what the dataset advertises is
-# actually correct and technically accurate
 from pathlib import Path
 from collections import Counter
 import json
@@ -71,6 +69,7 @@ def validate_dataset(json_files):
             stats["empty_api_sequences"] += 1
 
         sequence_lengths.append(len(apis))
+
         api_counter.update(apis)
 
     return (
