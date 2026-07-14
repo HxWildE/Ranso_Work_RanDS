@@ -1,0 +1,11 @@
+{
+    "total_samples": 94427,
+    "malformed": 0,
+    "empty_sequences": 44883,
+    "non_empty_sequences": 49544,
+    "vocabulary_size": 21636,
+    "average_length": 5.0035265337244645,
+    "median_length": 1,
+    "max_length": 214,
+    "min_length": 0
+}

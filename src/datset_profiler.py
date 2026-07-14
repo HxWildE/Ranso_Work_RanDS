@@ -1,287 +1,172 @@
-import os
-import json
-import random
-from collections import Counter, defaultdict
-from statistics import mean, median
-
+from pathlib import Path
+from collections import Counter
 from tqdm import tqdm
+import json
+import csv
+import random
+import statistics
 
-# ==========================================================
-# CONFIG
-# ==========================================================
+# ---------------- CONFIG ---------------- #
 
-DATASET_ROOT = r"data/raw/RanDS_Behaviour_Activity_Dataset/dataset"
+DATASET_ROOT = Path("data/raw/RanDS_Behaviour_Activity_Dataset/dataset")
+RESULTS_DIR = Path("results")
 
-# Number of APIs to display randomly
-RANDOM_API_COUNT = 10
+# ---------------------------------------- #
 
-# Number of longest samples to print
-TOP_LONGEST = 10
 
-# ==========================================================
-# VARIABLES
-# ==========================================================
+def main():
 
-total_json = 0
-json_errors = 0
-missing_api_key = 0
-empty_sequences = 0
+    RESULTS_DIR.mkdir(exist_ok=True)
 
-api_counter = Counter()
+    json_files = list(DATASET_ROOT.rglob("*.json"))
 
-sequence_lengths = []
+    print(f"\nFound {len(json_files)} JSON files.\n")
 
-# (length, filepath)
-longest_sequences = []
+    api_counter = Counter()
 
-prefix_counter = Counter()
+    sequence_lengths = []
 
-sample_sequence = None
+    random_tokens = []
 
-PREFIXES = [
-    "Nt",
-    "Zw",
-    "Create",
-    "Open",
-    "Get",
-    "Set",
-    "Reg",
-    "Crypt",
-    "Write",
-    "Read",
-]
+    total = 0
+    empty = 0
+    malformed = 0
 
-# ==========================================================
-# SCAN DATASET
-# ==========================================================
+    for file in tqdm(json_files):
 
-print("\nScanning dataset...\n")
-
-for root, dirs, files in os.walk(DATASET_ROOT):
-
-    for file in files:
-
-        if not file.endswith(".json"):
-            continue
-
-        total_json += 1
-
-        path = os.path.join(root, file)
+        total += 1
 
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
         except Exception:
-            json_errors += 1
+            malformed += 1
             continue
 
-        if "apis" not in data:
-            missing_api_key += 1
+        apis = data.get("critical_api_calls", [])
+
+        if not isinstance(apis, list):
             continue
 
-        apis = data["apis"]
+        sequence_lengths.append(len(apis))
 
         if len(apis) == 0:
-            empty_sequences += 1
-            continue
-
-        if sample_sequence is None:
-            sample_sequence = apis
-
-        L = len(apis)
-
-        sequence_lengths.append(L)
-
-        longest_sequences.append((L, path))
+            empty += 1
 
         for api in apis:
 
+            api = str(api).strip()
+
             api_counter[api] += 1
 
-            for p in PREFIXES:
-                if api.startswith(p):
-                    prefix_counter[p] += 1
-                    break
+            # keep random samples for inspection
+            if len(random_tokens) < 100:
+                random_tokens.append(api)
+            else:
+                if random.random() < 0.001:
+                    random_tokens[random.randint(0, 99)] = api
 
-# ==========================================================
-# REPORT
-# ==========================================================
+    ####################################################
+    # Summary
+    ####################################################
 
-print("\n" + "=" * 70)
-print("DATASET PROFILE")
-print("=" * 70)
+    non_empty = total - empty
 
-print(f"Total JSON files          : {total_json}")
-print(f"Unreadable JSON           : {json_errors}")
-print(f"Missing API key           : {missing_api_key}")
-print(f"Empty API sequences       : {empty_sequences}")
-print(f"Valid samples             : {len(sequence_lengths)}")
+    print("\n========== SUMMARY ==========\n")
 
-print()
+    print("Total Samples :", total)
+    print("Malformed     :", malformed)
+    print("Empty         :", empty)
+    print("Non Empty     :", non_empty)
 
-print(f"Unique APIs               : {len(api_counter)}")
-print(f"Total API Calls           : {sum(api_counter.values())}")
+    print()
 
-print()
+    print("Vocabulary Size :", len(api_counter))
 
-print("SEQUENCE LENGTHS")
-print("----------------")
+    print()
 
-print(f"Minimum                   : {min(sequence_lengths)}")
-print(f"Maximum                   : {max(sequence_lengths)}")
-print(f"Average                   : {mean(sequence_lengths):.2f}")
-print(f"Median                    : {median(sequence_lengths)}")
+    print("Average Length :", round(statistics.mean(sequence_lengths),2))
+    print("Median Length  :", statistics.median(sequence_lengths))
+    print("Max Length     :", max(sequence_lengths))
+    print("Min Length     :", min(sequence_lengths))
 
-# ==========================================================
-# HISTOGRAM
-# ==========================================================
+    ####################################################
+    # Vocabulary
+    ####################################################
 
-bins = {
-    "1": 0,
-    "2": 0,
-    "3": 0,
-    "4": 0,
-    "5": 0,
-    "6-10": 0,
-    "11-20": 0,
-    "21-50": 0,
-    "51-100": 0,
-    "101+": 0,
-}
+    with open(RESULTS_DIR/"api_vocabulary.txt","w",encoding="utf-8") as f:
 
-for L in sequence_lengths:
+        for api in sorted(api_counter.keys()):
+            f.write(api+"\n")
 
-    if L == 1:
-        bins["1"] += 1
-    elif L == 2:
-        bins["2"] += 1
-    elif L == 3:
-        bins["3"] += 1
-    elif L == 4:
-        bins["4"] += 1
-    elif L == 5:
-        bins["5"] += 1
-    elif L <= 10:
-        bins["6-10"] += 1
-    elif L <= 20:
-        bins["11-20"] += 1
-    elif L <= 50:
-        bins["21-50"] += 1
-    elif L <= 100:
-        bins["51-100"] += 1
-    else:
-        bins["101+"] += 1
+    ####################################################
+    # API Frequency
+    ####################################################
 
-print()
-print("=" * 70)
-print("SEQUENCE LENGTH DISTRIBUTION")
-print("=" * 70)
+    with open(RESULTS_DIR/"api_frequency.csv","w",newline="",encoding="utf-8") as f:
 
-for k, v in bins.items():
-    print(f"{k:10s}: {v}")
+        writer=csv.writer(f)
 
-# ==========================================================
-# API FREQUENCY DISTRIBUTION
-# ==========================================================
+        writer.writerow(["API","Frequency"])
 
-freq_bins = defaultdict(int)
+        for api,freq in api_counter.most_common():
+            writer.writerow([api,freq])
 
-for freq in api_counter.values():
+    ####################################################
+    # Sequence Lengths
+    ####################################################
 
-    if freq == 1:
-        freq_bins["1"] += 1
-    elif freq <= 5:
-        freq_bins["2-5"] += 1
-    elif freq <= 10:
-        freq_bins["6-10"] += 1
-    elif freq <= 50:
-        freq_bins["11-50"] += 1
-    elif freq <= 100:
-        freq_bins["51-100"] += 1
-    elif freq <= 500:
-        freq_bins["101-500"] += 1
-    else:
-        freq_bins["500+"] += 1
+    with open(RESULTS_DIR/"sequence_lengths.csv","w",newline="") as f:
 
-print()
-print("=" * 70)
-print("API FREQUENCY DISTRIBUTION")
-print("=" * 70)
+        writer=csv.writer(f)
 
-for k in ["1", "2-5", "6-10", "11-50", "51-100", "101-500", "500+"]:
-    print(f"{k:10s}: {freq_bins[k]}")
+        writer.writerow(["length"])
 
-# ==========================================================
-# TOP APIs
-# ==========================================================
+        for l in sequence_lengths:
+            writer.writerow([l])
 
-print()
-print("=" * 70)
-print("TOP 30 APIs")
-print("=" * 70)
+    ####################################################
+    # Random Tokens
+    ####################################################
 
-for api, cnt in api_counter.most_common(30):
-    print(f"{api:40s} {cnt}")
+    with open(RESULTS_DIR/"random_api_samples.txt","w",encoding="utf-8") as f:
 
-# ==========================================================
-# RANDOM APIs
-# ==========================================================
+        for api in sorted(random_tokens):
+            f.write(api+"\n")
 
-print()
-print("=" * 70)
-print(f"{RANDOM_API_COUNT} RANDOM APIs")
-print("=" * 70)
+    ####################################################
+    # JSON Summary
+    ####################################################
 
-random_apis = random.sample(
-    list(api_counter.keys()),
-    min(RANDOM_API_COUNT, len(api_counter))
-)
+    summary={
 
-for api in random_apis:
-    print(api)
+        "total_samples":total,
 
-# ==========================================================
-# PREFIXES
-# ==========================================================
+        "malformed":malformed,
 
-print()
-print("=" * 70)
-print("API PREFIX COUNTS")
-print("=" * 70)
+        "empty_sequences":empty,
 
-for p in PREFIXES:
-    print(f"{p:10s}: {prefix_counter[p]}")
+        "non_empty_sequences":non_empty,
 
-# ==========================================================
-# LONGEST SEQUENCES
-# ==========================================================
+        "vocabulary_size":len(api_counter),
 
-print()
-print("=" * 70)
-print(f"TOP {TOP_LONGEST} LONGEST SAMPLES")
-print("=" * 70)
+        "average_length":statistics.mean(sequence_lengths),
 
-longest_sequences.sort(reverse=True)
+        "median_length":statistics.median(sequence_lengths),
 
-for length, path in longest_sequences[:TOP_LONGEST]:
-    print(f"{length:5d}  {path}")
+        "max_length":max(sequence_lengths),
 
-# ==========================================================
-# SAMPLE SEQUENCE
-# ==========================================================
+        "min_length":min(sequence_lengths)
 
-print()
-print("=" * 70)
-print("FIRST NON-EMPTY SAMPLE")
-print("=" * 70)
+    }
 
-if sample_sequence:
+    with open(RESULTS_DIR/"dataset_summary.json","w") as f:
 
-    for api in sample_sequence[:100]:
-        print(api)
+        json.dump(summary,f,indent=4)
 
-    if len(sample_sequence) > 100:
-        print("...")
+    print("\nDone.\nResults saved inside results/\n")
 
-print("\nProfiling complete.")
+
+if __name__=="__main__":
+    main()
