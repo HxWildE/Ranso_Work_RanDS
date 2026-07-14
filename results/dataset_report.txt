@@ -1,0 +1,39 @@
+========== RanDS DATASET REPORT ==========
+
+Total Samples           : 94427
+Malformed JSON          : 0
+Missing API Key         : 0
+Empty API Sequences     : 44883
+
+------ Sequence Statistics ------
+Minimum Length          : 0
+Maximum Length          : 214
+Average Length          : 5.00
+Median Length           : 1
+
+Unique APIs             : 21636
+
+------ Top 20 APIs ------
+
+GetTickCount                             39730
+IsDebuggerPresent                        25659
+GetSystemMetrics                         15065
+Sleep                                    14346
+kernel32                                 13377
+advapi32                                 10692
+GetAdaptersAddresses                     9252
+GetTickCount64                           7928
+{file: }                                 4334
+NtSuspendProcess                         3284
+NtResumeProcess                          3284
+shell32                                  3283
+ExecQueryWmi                             2732
+powershell                               2703
+rasapi32                                 2474
+rasman                                   2463
+SystemFunction036                        2417
+CoInitializeEx                           2396
+schtasks                                 2264
+RegOpenKeyExW                            2206
+
+------ Malformed Files ------
