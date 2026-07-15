@@ -1,0 +1,9 @@
+Category,Count,Example
+API,422134,NtSuspendProcess
+DLL,33538,kernel32
+OTHER,7391,6bfabbc17a6764f2f83c38ed13796029
+PLACEHOLDER,5090,{file: }
+DOTNET,1934,System.Reflection.Assembly::Load
+JAVA_OR_DOT,1499,d94e8d379c7924e4734e7f26612c14e1.bin.undefined
+EXE,719,279f339038c3b14884761d5a7a86f896.exe.dll
+NUMBER,163,#2163_02_33-2022
