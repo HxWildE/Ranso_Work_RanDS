@@ -1,0 +1,14 @@
+{
+    "total_files": 94427,
+    "files_with_api": 49544,
+    "files_without_api": 44883,
+    "coverage_percent": 52.46804409755684,
+    "total_api_calls": 472468,
+    "unique_apis": 21636,
+    "average_sequence_length": 5.0035265337244645,
+    "median_sequence_length": 1,
+    "maximum_sequence_length": 214,
+    "minimum_sequence_length": 0,
+    "95_percentile": 13,
+    "rare_api_count": 18492
+}

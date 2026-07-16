@@ -55,7 +55,7 @@ def main():
         with open(file,"r",encoding="utf-8") as f:
             data = json.load(f)
 
-        for token in data.get("critical_api_calls",[]):
+        for token in data.get("l",[]):
 
             category = classify(str(token))
 
